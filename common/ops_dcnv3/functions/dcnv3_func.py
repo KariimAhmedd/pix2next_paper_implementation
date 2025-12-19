@@ -13,10 +13,22 @@ import torch.nn.functional as F
 from torch.autograd import Function
 from torch.autograd.function import once_differentiable
 from torch.cuda.amp import custom_bwd, custom_fwd
-import DCNv3
 
-import pkg_resources
-dcn_version = float(pkg_resources.get_distribution('DCNv3').version)
+# Try to import compiled DCNv3, but make it optional for DCNv3_pytorch
+try:
+    import pkg_resources
+    import DCNv3
+    dcn_version = float(pkg_resources.get_distribution('DCNv3').version)
+    DCNV3_AVAILABLE = True
+except (ImportError, ModuleNotFoundError):
+    try:
+        import pkg_resources
+        pkg_resources.get_distribution('DCNv3')
+    except:
+        pass
+    DCNv3 = None
+    dcn_version = 1.0
+    DCNV3_AVAILABLE = False
 
 
 class DCNv3Function(Function):
@@ -27,6 +39,9 @@ class DCNv3Function(Function):
             kernel_h, kernel_w, stride_h, stride_w,
             pad_h, pad_w, dilation_h, dilation_w,
             group, group_channels, offset_scale, im2col_step, remove_center):
+        if not DCNV3_AVAILABLE:
+            raise RuntimeError("DCNv3 compiled module not available. Use DCNv3_pytorch instead.")
+        
         ctx.kernel_h = kernel_h
         ctx.kernel_w = kernel_w
         ctx.stride_h = stride_h

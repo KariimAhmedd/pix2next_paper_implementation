@@ -32,18 +32,21 @@ def get_extensions():
     extra_compile_args = {"cxx": []}
     define_macros = []
 
-    if torch.cuda.is_available() and CUDA_HOME is not None:
+    if torch.cuda.is_available():
         extension = CUDAExtension
         sources += source_cuda
         define_macros += [("WITH_CUDA", None)]
         extra_compile_args["nvcc"] = [
-            # "-DCUDA_HAS_FP16=1",
-            # "-D__CUDA_NO_HALF_OPERATORS__",
-            # "-D__CUDA_NO_HALF_CONVERSIONS__",
-            # "-D__CUDA_NO_HALF2_OPERATORS__",
+            "-DCUDA_HAS_FP16=1",
+            "-D__CUDA_NO_HALF_OPERATORS__",
+            "-D__CUDA_NO_HALF_CONVERSIONS__",
+            "-D__CUDA_NO_HALF2_OPERATORS__",
+            "--expt-relaxed-constexpr",
         ]
+        if CUDA_HOME is None:
+            print("Warning: CUDA_HOME not set, but CUDA is available. PyTorch will try to find CUDA automatically.")
     else:
-        raise NotImplementedError('Cuda is not availabel')
+        raise NotImplementedError('Cuda is not available')
 
     sources = [os.path.join(extensions_dir, s) for s in sources]
     include_dirs = [extensions_dir]

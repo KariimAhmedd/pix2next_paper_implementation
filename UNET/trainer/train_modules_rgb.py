@@ -145,7 +145,6 @@ def train(config, G, D, optimizer_G, optimizer_D, lr_scheduler_G, lr_scheduler_D
                     sample_rgb_nir_pairs = [test_loader.dataset[i] for i in sample_indices]
                     generate_images(base_path, G, device, epoch, num_images_per_class, sample_rgb_nir_pairs)
 
-                if (epoch + 1) % 100 == 0:
                     checkpoint_dir = os.path.dirname(f"{base_path}/checkpoints/")
                     if not os.path.exists(checkpoint_dir):
                         os.makedirs(checkpoint_dir)

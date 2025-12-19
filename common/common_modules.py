@@ -1125,7 +1125,9 @@ class ViT(nn.Module):
 
         x = self.to_image(x)
         #print(f"Output shape: {x.shape}")
-        x = x.reshape(-1, 1024, 16, 16)
+        # Dynamic reshape based on number of patches
+        h = w = int((n) ** 0.5)
+        x = x.reshape(-1, self.dim, h, w)
         #print(f"Output shape: {x.shape}")
         return x
     

@@ -2,9 +2,9 @@ config_type: 'base'
 ##################
 
 data:
-  root: ~/datasets/Ranus/
+  root: '/teamspace/studios/this_studio/dataset/idd_aw/'
   download: true
-  resize: [256, 256]
+  resize: [256, 256]  # Full resolution for better quality
   normalize_mean: [0.5, 0.5, 0.5]
   normalize_std: [0.5, 0.5, 0.5]
 
@@ -12,10 +12,10 @@ loader:
   target: ['train', 'test']
 
   train:
-    epoch: 1000
-    batch_size: 3
+    epoch: 100
+    batch_size: 10
     shuffle: true
-    subset: false
+    subset: 2500
 
   vali:
     batch_size: 4

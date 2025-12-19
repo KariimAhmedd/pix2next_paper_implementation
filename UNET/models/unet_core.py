@@ -15,7 +15,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '../../')
 sys.path.append(project_root)
 
 from UNET.models.unet_modules import *
-from common.intern_image import *
+# from common.intern_image import *  # Not needed for ViT
 
 
 
@@ -49,8 +49,35 @@ class UnetCore(nn.Module):
             config['model']['unet']['decoder_block_args']
         )
 
-        self.internimage = InternImage()
-        #ViT(image_size = (32, 32),patch_size = (1, 1), dim = 256, depth = 6, heads = 16, mlp_dim = 512,channels = 1024)
+        # Initialize backbone based on config
+        swin_block_types = config['model']['unet'].get('swin_block_types', [])
+        if swin_block_types and swin_block_types[0] == 'VIT':
+            vit_args = config['model']['unet']['vit_block_args'][0]
+            self.backbone = ViT(image_size=vit_args[0], patch_size=vit_args[1], dim=vit_args[2], 
+                               depth=vit_args[3], heads=vit_args[4], mlp_dim=vit_args[5], channels=vit_args[6])
+        elif swin_block_types and swin_block_types[0] == 'swin':
+            # Use SwinTransformer for base config
+            self.backbone = SwinTransformerV2(*config['model']['unet']['swin_block_args'][0])
+            print("[OK] SwinTransformer backbone loaded successfully")
+        else:
+            # Try to import InternImage (uses DCNv3_pytorch by default - no compilation needed!)
+            try:
+                from common.intern_image import InternImage
+                # InternImage defaults to core_op='DCNv3_pytorch' which is pure PyTorch, no compilation needed
+                self.backbone = InternImage(core_op='DCNv3_pytorch')
+                print("[OK] InternImage backbone loaded successfully (using DCNv3_pytorch - no compilation needed)")
+            except (ImportError, ModuleNotFoundError) as e:
+                print(f"[ERROR] Error: Could not import InternImage: {e}")
+                print("   Trying to use DCNv3_pytorch directly...")
+                try:
+                    # Try importing just the PyTorch version
+                    from common.ops_dcnv3.modules.dcnv3 import DCNv3_pytorch
+                    from common.intern_image import InternImage
+                    self.backbone = InternImage(core_op='DCNv3_pytorch')
+                    print("[OK] InternImage loaded with DCNv3_pytorch fallback")
+                except Exception as e2:
+                    print(f"[ERROR] Fallback also failed: {e2}")
+                    raise RuntimeError(f"InternImage not available. Error: {e}")
 
         self.output_res_block = self._initialize_output_res_block(config)
         self.output_block = self._initialize_output_block(config)
@@ -204,7 +231,7 @@ class UnetCore(nn.Module):
                 x += skip_connections.pop()
             x = layer(x, condition)
 
-        x = self.output_res_block(torch.cat([x, residue], dim=1), embedded_time)
+        x = self.output_res_block(torch.cat([x, residue], dim=1))
         x = self.output_block(x)
         return x
     
@@ -212,7 +239,7 @@ class UnetCore(nn.Module):
         skip_connections = []
         residue = x
 
-        condition = self.internimage(x)
+        condition = self.backbone(x)
     
         for layer in self.encoder:
             x = layer(x, condition)

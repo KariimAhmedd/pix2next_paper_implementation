@@ -49,7 +49,8 @@ class UnetCore(nn.Module):
             config['model']['unet']['decoder_block_args']
         )
 
-        self.internimage = InternImage()
+        # Use DCNv3_pytorch (pure PyTorch, no compilation needed!)
+        self.internimage = InternImage(core_op='DCNv3_pytorch')
         #ViT(image_size = (32, 32),patch_size = (1, 1), dim = 256, depth = 6, heads = 16, mlp_dim = 512,channels = 1024)
 
         self.output_res_block = self._initialize_output_res_block(config)
